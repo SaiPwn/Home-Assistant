@@ -5,7 +5,7 @@
   <title>Live ISS Orbit</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Leaflet CSS for the map -->
+  <!-- Leaflet CSS -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -124,7 +124,6 @@
       box-shadow: 0 18px 32px rgba(0, 0, 0, 0.55);
     }
 
-    /* Leaflet map container */
     #map {
       width: 100%;
       height: 100%;
@@ -174,6 +173,12 @@
       border: 1px solid rgba(148, 163, 184, 0.5);
     }
 
+    /* Emoji marker */
+    .iss-icon {
+      font-size: 28px;
+      filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.9));
+    }
+
     @media (max-width: 640px) {
       .map-wrap {
         min-height: 320px;
@@ -197,26 +202,25 @@
       <div class="info-row">
         <div class="info-item">
           <div class="label">Latitude</div>
-          <div class="value mono" id="lat">--</div>
+          <div class="value mono" id="lat">-36.75°</div>
         </div>
         <div class="info-item">
           <div class="label">Longitude</div>
-          <div class="value mono" id="lon">--</div>
+          <div class="value mono" id="lon">156.27°</div>
         </div>
         <div class="info-item">
           <div class="label">Altitude</div>
-          <div class="value" id="alt">-- km</div>
+          <div class="value" id="alt">427.9 km</div>
         </div>
         <div class="info-item">
           <div class="label">Velocity</div>
-          <div class="value" id="vel">-- km/s</div>
+          <div class="value" id="vel">27.56 km/s</div>
         </div>
       </div>
       <div class="status" id="status">Fetching ISS position…</div>
     </section>
 
     <section class="map-wrap">
-      <!-- New map container instead of iframe -->
       <div id="map"></div>
 
       <div class="ticker">
@@ -226,9 +230,7 @@
         </div>
         <div class="ticker-right">
           <span class="mini-pill mono" id="ticker-time">--:--:--</span>
-          <span class="mini-pill">
-            NORAD ID: 25544
-          </span>
+          <span class="mini-pill">NORAD ID: 25544</span>
         </div>
       </div>
     </section>
@@ -244,8 +246,65 @@
   <script>
     let map;
     let issMarker;
-    let issPath;
-    const pathCoords = [];
+    let pastPath;
+    let futurePath;
+    const pastCoords = [];
+
+    let lastLat = null;
+    let lastLon = null;
+
+    function toRad(deg) {
+      return deg * Math.PI / 180;
+    }
+
+    function toDeg(rad) {
+      return rad * 180 / Math.PI;
+    }
+
+    // Bearing from point 1 to point 2
+    function computeBearing(lat1, lon1, lat2, lon2) {
+      const φ1 = toRad(lat1);
+      const φ2 = toRad(lat2);
+      const Δλ = toRad(lon2 - lon1);
+
+      const y = Math.sin(Δλ) * Math.cos(φ2);
+      const x =
+        Math.cos(φ1) * Math.sin(φ2) -
+        Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ);
+
+      let θ = Math.atan2(y, x);
+      return (toDeg(θ) + 360) % 360; // 0 - 360 degrees
+    }
+
+    // Destination point given start, bearing and distance (km)
+    function destinationPoint(lat, lon, bearing, distanceKm) {
+      const R = 6371; // Earth radius in km
+      const δ = distanceKm / R; // angular distance
+      const θ = toRad(bearing);
+
+      const φ1 = toRad(lat);
+      const λ1 = toRad(lon);
+
+      const sinφ1 = Math.sin(φ1);
+      const cosφ1 = Math.cos(φ1);
+      const sinδ = Math.sin(δ);
+      const cosδ = Math.cos(δ);
+      const sinθ = Math.sin(θ);
+      const cosθ = Math.cos(θ);
+
+      const sinφ2 =
+        sinφ1 * cosδ + cosφ1 * sinδ * cosθ;
+      const φ2 = Math.asin(sinφ2);
+
+      const y = sinθ * sinδ * cosφ1;
+      const x = cosδ - sinφ1 * sinφ2;
+      const λ2 = λ1 + Math.atan2(y, x);
+
+      let newLat = toDeg(φ2);
+      let newLon = ((toDeg(λ2) + 540) % 360) - 180; // normalize
+
+      return [newLat, newLon];
+    }
 
     function initMap() {
       map = L.map("map", {
@@ -258,24 +317,34 @@
         attribution: "&copy; OpenStreetMap contributors"
       }).addTo(map);
 
-      // Optional: custom ISS icon. You can change this to your own image if you want.
-      const issIcon = L.icon({
-        iconUrl: "https://raw.githubusercontent.com/joshuaferrara/iss-tracker/master/public/iss.png",
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
+      const issIcon = L.divIcon({
+        html: "🛰️",
+        className: "iss-icon",
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
       });
 
       issMarker = L.marker([0, 0], { icon: issIcon }).addTo(map);
 
-      issPath = L.polyline([], {
+      // Blue path = already passed
+      pastPath = L.polyline([], {
         weight: 2,
-        opacity: 0.9
+        opacity: 0.9,
+        color: "#3b82f6"
+      }).addTo(map);
+
+      // Green path = predicted future path
+      futurePath = L.polyline([], {
+        weight: 2,
+        opacity: 0.9,
+        color: "#22c55e"
       }).addTo(map);
     }
 
     function updateDisplay(data) {
       const { latitude, longitude, altitude, velocity, timestamp } = data;
 
+      // Live numbers
       document.getElementById("lat").textContent = latitude.toFixed(2) + "°";
       document.getElementById("lon").textContent = longitude.toFixed(2) + "°";
       document.getElementById("alt").textContent = altitude.toFixed(1) + " km";
@@ -290,21 +359,53 @@
       document.getElementById("ticker-time").textContent =
         d.toLocaleTimeString();
 
-      if (!map || !issMarker || !issPath) return;
+      if (!map || !issMarker || !pastPath || !futurePath) return;
 
-      const latLng = [latitude, longitude];
+      const lat = latitude;
+      const lon = longitude;
+      const latLng = [lat, lon];
 
       // Move marker
       issMarker.setLatLng(latLng);
 
-      // Extend orbit path
-      pathCoords.push(latLng);
-      if (pathCoords.length > 600) {
-        pathCoords.shift();
+      // Build past path
+      pastCoords.push(latLng);
+      if (pastCoords.length > 800) {
+        pastCoords.shift();
       }
-      issPath.setLatLngs(pathCoords);
+      pastPath.setLatLngs(pastCoords);
 
-      // Keep map roughly centered on the ISS
+      // Estimate bearing from previous position
+      let bearing;
+      if (lastLat === null || lastLon === null) {
+        bearing = 90; // east as a default
+      } else {
+        bearing = computeBearing(lastLat, lastLon, lat, lon);
+      }
+      lastLat = lat;
+      lastLon = lon;
+
+      // Build predicted future path
+      const futureCoords = [];
+      const vKmPerSec = velocity / 1000;
+
+      const steps = 60;         // number of prediction points
+      const stepSeconds = 60;   // spacing in time between each point
+
+      let curLat = lat;
+      let curLon = lon;
+
+      for (let i = 0; i < steps; i++) {
+        const distanceKm = vKmPerSec * stepSeconds;
+        const next = destinationPoint(curLat, curLon, bearing, distanceKm);
+        curLat = next[0];
+        curLon = next[1];
+        futureCoords.push([curLat, curLon]);
+      }
+
+      futurePath.setLatLngs(futureCoords);
+
+      // Keep map roughly centered on current ISS position
       map.panTo(latLng, { animate: true, duration: 0.7 });
     }
 
