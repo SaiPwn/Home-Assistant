@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Home Space</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    :root {
+      --bg: #050711;
+      --bg-alt: #0d101c;
+      --card: #131729;
+      --accent: #3b82f6;
+      --accent-soft: rgba(59, 130, 246, 0.4);
+      --text: #f9fafb;
+      --muted: #9ca3af;
+      --danger: #f97373;
+      --radius: 18px;
+      --shadow: 0 18px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at top, #111827, #020617 55%);
+      display: flex;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 1120px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .title-group h1 {
+      font-size: 1.8rem;
+      margin: 0;
+      letter-spacing: 0.02em;
+    }
+
+    .title-group p {
+      margin: 2px 0 0;
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .badge {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      border: 1px solid var(--accent-soft);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(147, 51, 234, 0.18));
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .badge-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.28);
+    }
+
+    main {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(0, 2fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 800px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, rgba(59, 130, 246, 0.15), transparent 55%),
+                  var(--card);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(148, 163, 184, 0.15);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 55%);
+      opacity: 0.5;
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card h2 span.label {
+      font-weight: 500;
+    }
+
+    .card h2 span.sub {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .metric-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .metric {
+      flex: 1;
+      min-width: 90px;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+
+    .metric-value {
+      font-size: 1.1rem;
+      font-weight: 500;
+    }
+
+    .metric-value.small {
+      font-size: 0.9rem;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.7rem;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.38);
+      color: var(--muted);
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .pill.danger .pill-dot {
+      background: var(--danger);
+    }
+
+    .card-footer {
+      margin-top: 12px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .card-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.75rem;
+    }
+
+    .card-footer a:hover {
+      text-decoration: underline;
+    }
+
+    .search-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .search-bar {
+      display: flex;
+      gap: 8px;
+    }
+
+    .search-input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .search-input::placeholder {
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    .btn {
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      color: white;
+      box-shadow: 0 14px 30px rgba(37, 99, 235, 0.5);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+      box-shadow: 0 8px 18px rgba(37, 99, 235, 0.55);
+    }
+
+    .link-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: 0.78rem;
+    }
+
+    .chip-link {
+      border-radius: 999px;
+      padding: 5px 10px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      color: var(--muted);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .chip-link:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .status-text {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .status-text.error {
+      color: var(--danger);
+    }
+
+    .mono {
+      font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .iss-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    @media (max-width: 480px) {
+      .iss-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .corner-orbit {
+      position: absolute;
+      right: -40px;
+      top: -40px;
+      width: 120px;
+      height: 120px;
+      border-radius: 999px;
+      border: 1px dashed rgba(148, 163, 184, 0.35);
+      pointer-events: none;
+    }
+
+    .corner-orbit::after {
+      content: "";
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--accent);
+      top: 18px;
+      left: 48px;
+      box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.35);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="title-group">
+        <h1>Sai's Home Space</h1>
+        <p>Your little control panel for Point Cook, weather and the ISS.</p>
+      </div>
+      <div class="badge">
+        <span class="badge-dot"></span>
+        Live data
+      </div>
+    </header>
+
+    <main>
+      <!-- Weather card -->
+      <section class="card" aria-labelledby="weather-title">
+        <div class="corner-orbit"></div>
+        <h2 id="weather-title">
+          <span class="label">Point Cook Weather</span>
+          <span class="sub" id="weather-updated">loading…</span>
+        </h2>
+
+        <div class="metric-row">
+          <div class="metric">
+            <div class="metric-label">Temperature</div>
+            <div class="metric-value" id="weather-temp">-- °C</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Feels like</div>
+            <div class="metric-value" id="weather-feels">-- °C</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Wind</div>
+            <div class="metric-value small" id="weather-wind">-- km/h</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Humidity</div>
+            <div class="metric-value small" id="weather-humidity">-- %</div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="status-text" id="weather-status">
+            Powered by Open-Meteo (no API key).
+          </span>
+          <a href="https://open-meteo.com/" target="_blank" rel="noopener">
+            View API docs
+          </a>
+        </div>
+      </section>
+
+      <!-- ISS current card -->
+      <section class="card" aria-labelledby="iss-now-title">
+        <div class="corner-orbit"></div>
+        <h2 id="iss-now-title">
+          <span class="label">ISS Right Now</span>
+          <span class="sub mono" id="iss-updated">updating…</span>
+        </h2>
+
+        <div class="iss-grid">
+          <div class="metric">
+            <div class="metric-label">Latitude</div>
+            <div class="metric-value small mono" id="iss-lat">--</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Longitude</div>
+            <div class="metric-value small mono" id="iss-lon">--</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Altitude</div>
+            <div class="metric-value small" id="iss-alt">-- km</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Velocity</div>
+            <div class="metric-value small" id="iss-vel">-- km/s</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Visibility</div>
+            <div class="metric-value small" id="iss-vis">--</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Distance from Point Cook</div>
+            <div class="metric-value small" id="iss-dist">-- km</div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="status-text" id="iss-status">
+            Data from wheretheiss.at (refreshes every ~15s).
+          </span>
+          <a href="iss.html">Open ISS map</a>
+        </div>
+      </section>
+
+      <!-- Next pass card -->
+      <section class="card" aria-labelledby="iss-pass-title">
+        <h2 id="iss-pass-title">
+          <span class="label">Next ISS Pass over Point Cook</span>
+          <span class="sub">rough 24-hour look ahead</span>
+        </h2>
+
+        <div class="metric-row">
+          <div class="metric">
+            <div class="metric-label">Approx time (local)</div>
+            <div class="metric-value small" id="pass-time">calculating…</div>
+          </div>
+          <div class="metric">
+            <div class="metric-label">Closest distance</div>
+            <div class="metric-value small" id="pass-distance">-- km</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <span class="pill" id="pass-pill">
+            <span class="pill-dot"></span>
+            Scan window: next 24 hours, 15-minute steps
+          </span>
+        </div>
+
+        <div class="card-footer">
+          <span class="status-text" id="pass-status">
+            Treat this as an approximation. For super precise timings, use a dedicated ISS pass site.
+          </span>
+          <a href="https://www.heavens-above.com/" target="_blank" rel="noopener">
+            Heavens-Above
+          </a>
+        </div>
+      </section>
+
+      <!-- Search + shortcuts -->
+      <section class="card" aria-labelledby="search-title">
+        <h2 id="search-title">
+          <span class="label">Quick Search & Links</span>
+          <span class="sub">Google + handy space tools</span>
+        </h2>
+
+        <div class="search-wrapper">
+          <form
+            class="search-bar"
+            action="https://www.google.com/search"
+            method="GET"
+            target="_blank"
+            rel="noopener"
+          >
+            <input
+              type="text"
+              name="q"
+              class="search-input"
+              placeholder="Search Google from your home page…"
+              autocomplete="off"
+            />
+            <button type="submit" class="btn">
+              <span>Search</span>
+            </button>
+          </form>
+
+          <div class="link-row">
+            <a
+              class="chip-link"
+              href="https://maps.google.com/maps?q=Point+Cook,+VIC,+Australia&z=11"
+              target="_blank"
+              rel="noopener"
+            >
+              🌏 Point Cook on Maps
+            </a>
+            <a
+              class="chip-link"
+              href="https://api.wheretheiss.at/v1/satellites/25544"
+              target="_blank"
+              rel="noopener"
+            >
+              🛰 ISS JSON data
+            </a>
+            <a
+              class="chip-link"
+              href="https://open-meteo.com/en/docs"
+              target="_blank"
+              rel="noopener"
+            >
+              🌤 Weather API docs
+            </a>
+            <a
+              class="chip-link"
+              href="https://www.celestrak.com/NORAD/elements/stations.txt"
+              target="_blank"
+              rel="noopener"
+            >
+              📄 ISS TLE
+            </a>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <span class="status-text">
+            Built to work as a static site on GitHub Pages.
+          </span>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Point Cook coordinates (approx)
+    // Source: public suburb coordinate datasets
+    const HOME_LAT = -37.9148;
+    const HOME_LON = 144.7509;
+
+    function toLocalTimeString(unixSeconds) {
+      if (!unixSeconds) return "--";
+      const d = new Date(unixSeconds * 1000);
+      return d.toLocaleString(undefined, {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371; // km
+      const toRad = (deg) => (deg * Math.PI) / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) *
+          Math.cos(toRad(lat2)) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    async function loadWeather() {
+      const statusEl = document.getElementById("weather-status");
+      const updatedEl = document.getElementById("weather-updated");
+
+      try {
+        statusEl.textContent = "Loading current weather from Open-Meteo…";
+
+        const url =
+          "https://api.open-meteo.com/v1/forecast" +
+          `?latitude=${HOME_LAT}` +
+          `&longitude=${HOME_LON}` +
+          "&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,is_day" +
+          "&timezone=auto";
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error("Weather API error " + res.status);
+        }
+
+        const data = await res.json();
+        const current = data.current;
+
+        document.getElementById("weather-temp").textContent =
+          current.temperature_2m.toFixed(1) + " °C";
+        document.getElementById("weather-feels").textContent =
+          current.apparent_temperature.toFixed(1) + " °C";
+        document.getElementById("weather-wind").textContent =
+          current.wind_speed_10m.toFixed(1) + " km/h";
+        document.getElementById("weather-humidity").textContent =
+          current.relative_humidity_2m.toFixed(0) + " %";
+
+        updatedEl.textContent = current.time
+          ? "Updated " +
+            new Date(current.time).toLocaleTimeString(undefined, {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "just now";
+
+        statusEl.textContent = "Live from Open-Meteo, Point Cook area.";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent =
+          "Could not load weather right now. Check your connection.";
+        statusEl.classList.add("error");
+        updatedEl.textContent = "error";
+      }
+    }
+
+    async function loadIssNow() {
+      const statusEl = document.getElementById("iss-status");
+      const updatedEl = document.getElementById("iss-updated");
+
+      try {
+        const res = await fetch(
+          "https://api.wheretheiss.at/v1/satellites/25544"
+        );
+        if (!res.ok) {
+          throw new Error("ISS API error " + res.status);
+        }
+        const data = await res.json();
+
+        const { latitude, longitude, altitude, velocity, visibility, timestamp } =
+          data;
+
+        document.getElementById("iss-lat").textContent =
+          latitude.toFixed(2) + "°";
+        document.getElementById("iss-lon").textContent =
+          longitude.toFixed(2) + "°";
+        document.getElementById("iss-alt").textContent =
+          altitude.toFixed(1) + " km";
+        document.getElementById("iss-vel").textContent =
+          (velocity / 1000).toFixed(2) + " km/s";
+        document.getElementById("iss-vis").textContent =
+          visibility === "daylight" ? "in daylight (not visible)" : "in night";
+
+        const distanceKm = haversineKm(HOME_LAT, HOME_LON, latitude, longitude);
+        document.getElementById("iss-dist").textContent =
+          distanceKm.toFixed(0) + " km";
+
+        updatedEl.textContent =
+          "Updated " +
+          new Date(timestamp * 1000).toLocaleTimeString(undefined, {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+
+        statusEl.textContent = "Using wheretheiss.at realtime data.";
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent =
+          "Could not load ISS position. Try refreshing in a bit.";
+        statusEl.classList.add("error");
+        updatedEl.textContent = "error";
+      }
+    }
+
+    async function loadNextPass() {
+      const timeEl = document.getElementById("pass-time");
+      const distEl = document.getElementById("pass-distance");
+      const statusEl = document.getElementById("pass-status");
+
+      timeEl.textContent = "calculating…";
+      distEl.textContent = "-- km";
+
+      try {
+        const now = Math.floor(Date.now() / 1000);
+        const step = 15 * 60; // 15 minutes
+        const hours = 24;
+        const total = (hours * 60) / 15; // 96
+        const timestamps = [];
+
+        for (let i = 0; i <= total; i++) {
+          timestamps.push(now + i * step);
+        }
+
+        let best = null;
+
+        // Chunk into groups of 10 timestamps per API request
+        for (let i = 0; i < timestamps.length; i += 10) {
+          const chunk = timestamps.slice(i, i + 10);
+          const url =
+            "https://api.wheretheiss.at/v1/satellites/25544/positions?" +
+            "timestamps=" +
+            chunk.join(",") +
+            "&units=kilometers";
+
+          const res = await fetch(url);
+          if (!res.ok) {
+            throw new Error("ISS positions API error " + res.status);
+          }
+          const arr = await res.json();
+
+          for (const pos of arr) {
+            const d = haversineKm(
+              HOME_LAT,
+              HOME_LON,
+              pos.latitude,
+              pos.longitude
+            );
+            if (!best || d < best.distance) {
+              best = {
+                distance: d,
+                timestamp: pos.timestamp,
+              };
+            }
+          }
+        }
+
+        if (!best) {
+          timeEl.textContent = "No pass found in next 24 hours.";
+          distEl.textContent = "–";
+          statusEl.textContent =
+            "Could not find any close approach in the next 24 hours.";
+          return;
+        }
+
+        const friendlyTime = toLocalTimeString(best.timestamp);
+        timeEl.textContent = friendlyTime;
+        distEl.textContent = best.distance.toFixed(0) + " km";
+
+        statusEl.textContent =
+          "Closest approach in the next 24 hours (within roughly a few hundred km).";
+      } catch (err) {
+        console.error(err);
+        timeEl.textContent = "error";
+        distEl.textContent = "error";
+        statusEl.textContent =
+          "Could not calculate the next pass. Try again later.";
+        statusEl.classList.add("error");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadWeather();
+      loadIssNow();
+      loadNextPass();
+
+      // Refresh weather every 10 minutes
+      setInterval(loadWeather, 10 * 60 * 1000);
+      // Refresh ISS current position every 15 seconds
+      setInterval(loadIssNow, 15 * 1000);
+      // Re-scan passes every 2 hours
+      setInterval(loadNextPass, 2 * 60 * 60 * 1000);
+    });
+  </script>
+</body>
+</html>
