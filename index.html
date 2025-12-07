@@ -327,7 +327,7 @@
     <header>
       <div class="title-group">
         <h1>Sai's Home Space</h1>
-        <p>Your little control panel for Point Cook, weather and the ISS.</p>
+        <p>Your little control panel for your location, weather and the ISS.</p>
       </div>
       <div class="badge">
         <span class="badge-dot"></span>
@@ -340,7 +340,7 @@
       <section class="card" aria-labelledby="weather-title">
         <div class="corner-orbit"></div>
         <h2 id="weather-title">
-          <span class="label">Point Cook Weather</span>
+          <span class="label" id="weather-title-label">Local Weather</span>
           <span class="sub" id="weather-updated">loading…</span>
         </h2>
 
@@ -365,7 +365,7 @@
 
         <div class="card-footer">
           <span class="status-text" id="weather-status">
-            Powered by Open-Meteo (no API key).
+            Waiting for location…
           </span>
           <a href="https://open-meteo.com/" target="_blank" rel="noopener">
             View API docs
@@ -378,7 +378,7 @@
         <div class="corner-orbit"></div>
         <h2 id="iss-now-title">
           <span class="label">ISS Right Now</span>
-          <span class="sub mono" id="iss-updated">updating…</span>
+          <span class="sub mono" id="iss-updated">waiting for location…</span>
         </h2>
 
         <div class="iss-grid">
@@ -403,14 +403,14 @@
             <div class="metric-value small" id="iss-vis">--</div>
           </div>
           <div class="metric">
-            <div class="metric-label">Distance from Point Cook</div>
+            <div class="metric-label">Distance from you</div>
             <div class="metric-value small" id="iss-dist">-- km</div>
           </div>
         </div>
 
         <div class="card-footer">
           <span class="status-text" id="iss-status">
-            Data from wheretheiss.at (refreshes every ~15s).
+            Waiting for location…
           </span>
           <a href="iss.html">Open ISS map</a>
         </div>
@@ -419,14 +419,14 @@
       <!-- Next pass card -->
       <section class="card" aria-labelledby="iss-pass-title">
         <h2 id="iss-pass-title">
-          <span class="label">Next ISS Pass over Point Cook</span>
+          <span class="label">Next ISS Pass over You</span>
           <span class="sub">rough 24-hour look ahead</span>
         </h2>
 
         <div class="metric-row">
           <div class="metric">
             <div class="metric-label">Approx time (local)</div>
-            <div class="metric-value small" id="pass-time">calculating…</div>
+            <div class="metric-value small" id="pass-time">waiting for location…</div>
           </div>
           <div class="metric">
             <div class="metric-label">Closest distance</div>
@@ -443,7 +443,7 @@
 
         <div class="card-footer">
           <span class="status-text" id="pass-status">
-            Treat this as an approximation. For super precise timings, use a dedicated ISS pass site.
+            Waiting for location…
           </span>
           <a href="https://www.heavens-above.com/" target="_blank" rel="noopener">
             Heavens-Above
@@ -481,11 +481,12 @@
           <div class="link-row">
             <a
               class="chip-link"
-              href="https://maps.google.com/maps?q=Point+Cook,+VIC,+Australia&z=11"
+              id="maps-link"
+              href="https://maps.google.com/maps?q=-37.9148,144.7509&z=11"
               target="_blank"
               rel="noopener"
             >
-              🌏 Point Cook on Maps
+              <span id="maps-label">🌏 Your location on Maps</span>
             </a>
             <a
               class="chip-link"
@@ -524,9 +525,10 @@
   </div>
 
   <script>
-    // Point Cook coordinates (approx)
-    const HOME_LAT = -37.9148;
-    const HOME_LON = 144.7509;
+    // Defaults: Point Cook (fallback if everything else fails)
+    let HOME_LAT = -37.9148;
+    let HOME_LON = 144.7509;
+    let LOCATION_LABEL = "Point Cook";
 
     function toLocalTimeString(unixSeconds) {
       if (!unixSeconds) return "--";
@@ -542,7 +544,7 @@
     }
 
     function haversineKm(lat1, lon1, lat2, lon2) {
-      const R = 6371; // km
+      const R = 6371;
       const toRad = (deg) => (deg * Math.PI) / 180;
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
@@ -556,12 +558,137 @@
       return R * c;
     }
 
+    function updateUiForLocation() {
+      const weatherTitleLabel = document.getElementById("weather-title-label");
+      if (weatherTitleLabel) {
+        weatherTitleLabel.textContent = LOCATION_LABEL
+          ? `Weather · ${LOCATION_LABEL}`
+          : "Local Weather";
+      }
+
+      const weatherStatus = document.getElementById("weather-status");
+      if (weatherStatus) {
+        weatherStatus.textContent = LOCATION_LABEL
+          ? `Live from Open-Meteo at ${LOCATION_LABEL}.`
+          : "Live from Open-Meteo at your location.";
+        weatherStatus.classList.remove("error");
+      }
+
+      const mapsLink = document.getElementById("maps-link");
+      const mapsLabel = document.getElementById("maps-label");
+      if (mapsLink) {
+        mapsLink.href = `https://maps.google.com/maps?q=${HOME_LAT},${HOME_LON}&z=11`;
+      }
+      if (mapsLabel) {
+        mapsLabel.textContent = LOCATION_LABEL
+          ? `🌏 ${LOCATION_LABEL} on Maps`
+          : "🌏 Your location on Maps";
+      }
+
+      const passStatus = document.getElementById("pass-status");
+      if (passStatus && passStatus.textContent.startsWith("Waiting for location")) {
+        passStatus.textContent =
+          "Closest approach in the next 24 hours (within roughly a few hundred km).";
+      }
+
+      const issStatus = document.getElementById("iss-status");
+      if (issStatus && issStatus.textContent.startsWith("Waiting for location")) {
+        issStatus.textContent = "Using wheretheiss.at realtime data.";
+      }
+
+      const issUpdated = document.getElementById("iss-updated");
+      if (issUpdated && issUpdated.textContent.startsWith("waiting for location")) {
+        issUpdated.textContent = "updating…";
+      }
+
+      const passTime = document.getElementById("pass-time");
+      if (passTime && passTime.textContent.startsWith("waiting for location")) {
+        passTime.textContent = "calculating…";
+      }
+    }
+
+    function getBrowserLocation() {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          return reject(new Error("Geolocation not supported"));
+        }
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            resolve({
+              lat: pos.coords.latitude,
+              lon: pos.coords.longitude,
+              label: "Your device location",
+            });
+          },
+          (err) => reject(err),
+          { enableHighAccuracy: false, timeout: 7000, maximumAge: 600000 }
+        );
+      });
+    }
+
+    async function getIpLocation() {
+      const res = await fetch("https://ipapi.co/json/");
+      if (!res.ok) {
+        throw new Error("IP location API error " + res.status);
+      }
+      const data = await res.json();
+      const lat = data.latitude;
+      const lon = data.longitude;
+      const parts = [data.city, data.region, data.country_name].filter(Boolean);
+      return {
+        lat,
+        lon,
+        label: parts.join(", ") || "Approximate location",
+      };
+    }
+
+    async function initLocation() {
+      const statusEl = document.getElementById("weather-status");
+      try {
+        if (statusEl) {
+          statusEl.textContent = "Getting your location…";
+        }
+
+        let loc;
+        try {
+          loc = await getBrowserLocation();
+        } catch (geoErr) {
+          if (statusEl) {
+            statusEl.textContent = "Using approximate location from your IP…";
+          }
+          loc = await getIpLocation();
+        }
+
+        if (!loc || typeof loc.lat !== "number" || typeof loc.lon !== "number") {
+          throw new Error("Location data missing");
+        }
+
+        HOME_LAT = loc.lat;
+        HOME_LON = loc.lon;
+        LOCATION_LABEL = loc.label;
+        updateUiForLocation();
+      } catch (err) {
+        console.error(err);
+        LOCATION_LABEL = "Point Cook (fallback)";
+        HOME_LAT = -37.9148;
+        HOME_LON = 144.7509;
+        updateUiForLocation();
+        if (statusEl) {
+          statusEl.textContent =
+            "Could not get your location. Using fallback (Point Cook).";
+          statusEl.classList.add("error");
+        }
+      }
+    }
+
     async function loadWeather() {
       const statusEl = document.getElementById("weather-status");
       const updatedEl = document.getElementById("weather-updated");
 
       try {
-        statusEl.textContent = "Loading current weather from Open-Meteo…";
+        if (statusEl) {
+          statusEl.textContent = "Loading current weather from Open-Meteo…";
+        }
 
         const url =
           "https://api.open-meteo.com/v1/forecast" +
@@ -587,21 +714,32 @@
         document.getElementById("weather-humidity").textContent =
           current.relative_humidity_2m.toFixed(0) + " %";
 
-        updatedEl.textContent = current.time
-          ? "Updated " +
-            new Date(current.time).toLocaleTimeString(undefined, {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "just now";
+        if (updatedEl) {
+          updatedEl.textContent = current.time
+            ? "Updated " +
+              new Date(current.time).toLocaleTimeString(undefined, {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "just now";
+        }
 
-        statusEl.textContent = "Live from Open-Meteo, Point Cook area.";
+        if (statusEl) {
+          statusEl.textContent = LOCATION_LABEL
+            ? `Live from Open-Meteo at ${LOCATION_LABEL}.`
+            : "Live from Open-Meteo at your location.";
+          statusEl.classList.remove("error");
+        }
       } catch (err) {
         console.error(err);
-        statusEl.textContent =
-          "Could not load weather right now. Check your connection.";
-        statusEl.classList.add("error");
-        updatedEl.textContent = "error";
+        if (statusEl) {
+          statusEl.textContent =
+            "Could not load weather right now. Check your connection.";
+          statusEl.classList.add("error");
+        }
+        if (updatedEl) {
+          updatedEl.textContent = "error";
+        }
       }
     }
 
@@ -636,21 +774,30 @@
         document.getElementById("iss-dist").textContent =
           distanceKm.toFixed(0) + " km";
 
-        updatedEl.textContent =
-          "Updated " +
-          new Date(timestamp * 1000).toLocaleTimeString(undefined, {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
+        if (updatedEl) {
+          updatedEl.textContent =
+            "Updated " +
+            new Date(timestamp * 1000).toLocaleTimeString(undefined, {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+        }
 
-        statusEl.textContent = "Using wheretheiss.at realtime data.";
+        if (statusEl) {
+          statusEl.textContent = "Using wheretheiss.at realtime data.";
+          statusEl.classList.remove("error");
+        }
       } catch (err) {
         console.error(err);
-        statusEl.textContent =
-          "Could not load ISS position. Try refreshing in a bit.";
-        statusEl.classList.add("error");
-        updatedEl.textContent = "error";
+        if (statusEl) {
+          statusEl.textContent =
+            "Could not load ISS position. Try refreshing in a bit.";
+          statusEl.classList.add("error");
+        }
+        if (updatedEl) {
+          updatedEl.textContent = "error";
+        }
       }
     }
 
@@ -659,14 +806,14 @@
       const distEl = document.getElementById("pass-distance");
       const statusEl = document.getElementById("pass-status");
 
-      timeEl.textContent = "calculating…";
-      distEl.textContent = "-- km";
+      if (timeEl) timeEl.textContent = "calculating…";
+      if (distEl) distEl.textContent = "-- km";
 
       try {
         const now = Math.floor(Date.now() / 1000);
-        const step = 15 * 60; // 15 minutes
+        const step = 15 * 60;
         const hours = 24;
-        const total = (hours * 60) / 15; // 96
+        const total = (hours * 60) / 15;
         const timestamps = [];
 
         for (let i = 0; i <= total; i++) {
@@ -675,7 +822,6 @@
 
         let best = null;
 
-        // Chunk into groups of 10 timestamps per API request
         for (let i = 0; i < timestamps.length; i += 10) {
           const chunk = timestamps.slice(i, i + 10);
           const url =
@@ -707,30 +853,39 @@
         }
 
         if (!best) {
-          timeEl.textContent = "No pass found in next 24 hours.";
-          distEl.textContent = "–";
-          statusEl.textContent =
-            "Could not find any close approach in the next 24 hours.";
+          if (timeEl) timeEl.textContent = "No pass found in next 24 hours.";
+          if (distEl) distEl.textContent = "–";
+          if (statusEl) {
+            statusEl.textContent =
+              "Could not find any close approach in the next 24 hours.";
+          }
           return;
         }
 
         const friendlyTime = toLocalTimeString(best.timestamp);
-        timeEl.textContent = friendlyTime;
-        distEl.textContent = best.distance.toFixed(0) + " km";
+        if (timeEl) timeEl.textContent = friendlyTime;
+        if (distEl) distEl.textContent = best.distance.toFixed(0) + " km";
 
-        statusEl.textContent =
-          "Closest approach in the next 24 hours (within roughly a few hundred km).";
+        if (statusEl) {
+          statusEl.textContent =
+            "Closest approach in the next 24 hours (within roughly a few hundred km).";
+          statusEl.classList.remove("error");
+        }
       } catch (err) {
         console.error(err);
-        timeEl.textContent = "error";
-        distEl.textContent = "error";
-        statusEl.textContent =
-          "Could not calculate the next pass. Try again later.";
-        statusEl.classList.add("error");
+        if (timeEl) timeEl.textContent = "error";
+        if (distEl) distEl.textContent = "error";
+        if (statusEl) {
+          statusEl.textContent =
+            "Could not calculate the next pass. Try again later.";
+          statusEl.classList.add("error");
+        }
       }
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
+    async function initApp() {
+      await initLocation();
+      // After location is ready, load data
       loadWeather();
       loadIssNow();
       loadNextPass();
@@ -741,6 +896,10 @@
       setInterval(loadIssNow, 15 * 1000);
       // Re-scan passes every 2 hours
       setInterval(loadNextPass, 2 * 60 * 60 * 1000);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initApp();
     });
   </script>
 </body>
