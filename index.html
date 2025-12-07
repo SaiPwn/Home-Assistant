@@ -106,9 +106,9 @@
       content: "";
       position: absolute;
       inset: 0;
-      pointer-events: none;
       background: radial-gradient(circle at top right, rgba(59, 130, 246, 0.15), transparent 55%);
       opacity: 0.5;
+      pointer-events: none;
     }
 
     .card h2 {
@@ -416,11 +416,11 @@
         </div>
       </section>
 
-      <!-- Next pass card with SSTV info -->
+      <!-- Next pass card -->
       <section class="card" aria-labelledby="iss-pass-title">
         <h2 id="iss-pass-title">
           <span class="label">Next ISS Pass over Point Cook</span>
-          <span class="sub">rough 24 hour look ahead</span>
+          <span class="sub">rough 24-hour look ahead</span>
         </h2>
 
         <div class="metric-row">
@@ -432,20 +432,12 @@
             <div class="metric-label">Closest distance</div>
             <div class="metric-value small" id="pass-distance">-- km</div>
           </div>
-          <div class="metric">
-            <div class="metric-label">Next SSTV event</div>
-            <div class="metric-value small" id="sstv-event">no SSTV events set</div>
-          </div>
-          <div class="metric">
-            <div class="metric-label">Best pass during SSTV</div>
-            <div class="metric-value small" id="sstv-pass">--</div>
-          </div>
         </div>
 
         <div style="margin-top: 10px;">
           <span class="pill" id="pass-pill">
             <span class="pill-dot"></span>
-            Scan window: next 24 hours, 15 minute steps
+            Scan window: next 24 hours, 15-minute steps
           </span>
         </div>
 
@@ -454,7 +446,7 @@
             Treat this as an approximation. For super precise timings, use a dedicated ISS pass site.
           </span>
           <a href="https://www.heavens-above.com/" target="_blank" rel="noopener">
-            Heavens Above
+            Heavens-Above
           </a>
         </div>
       </section>
@@ -536,18 +528,6 @@
     const HOME_LAT = -37.9148;
     const HOME_LON = 144.7509;
 
-    // Configure SSTV event windows here (example only)
-    // Use real ARISS SSTV times when they are announced.
-    // Times are in UNIX seconds (UTC).
-    const SSTV_EVENTS = [
-      // Example:
-      // {
-      //   name: "Example SSTV event",
-      //   start: Date.UTC(2025, 0, 1, 0, 0) / 1000, // 1 Jan 2025 00:00 UTC
-      //   end: Date.UTC(2025, 0, 2, 0, 0) / 1000   // 2 Jan 2025 00:00 UTC
-      // }
-    ];
-
     function toLocalTimeString(unixSeconds) {
       if (!unixSeconds) return "--";
       const d = new Date(unixSeconds * 1000);
@@ -562,7 +542,7 @@
     }
 
     function haversineKm(lat1, lon1, lat2, lon2) {
-      const R = 6371;
+      const R = 6371; // km
       const toRad = (deg) => (deg * Math.PI) / 180;
       const dLat = toRad(lat2 - lat1);
       const dLon = toRad(lon2 - lon1);
@@ -678,21 +658,15 @@
       const timeEl = document.getElementById("pass-time");
       const distEl = document.getElementById("pass-distance");
       const statusEl = document.getElementById("pass-status");
-      const sstvEventEl = document.getElementById("sstv-event");
-      const sstvPassEl = document.getElementById("sstv-pass");
 
       timeEl.textContent = "calculating…";
       distEl.textContent = "-- km";
-      sstvEventEl.textContent = SSTV_EVENTS.length
-        ? "looking in event windows…"
-        : "no SSTV events set";
-      sstvPassEl.textContent = SSTV_EVENTS.length ? "calculating…" : "--";
 
       try {
         const now = Math.floor(Date.now() / 1000);
-        const step = 15 * 60;
+        const step = 15 * 60; // 15 minutes
         const hours = 24;
-        const total = (hours * 60) / 15;
+        const total = (hours * 60) / 15; // 96
         const timestamps = [];
 
         for (let i = 0; i <= total; i++) {
@@ -700,9 +674,8 @@
         }
 
         let best = null;
-        let bestEventPass = null;
-        let bestEvent = null;
 
+        // Chunk into groups of 10 timestamps per API request
         for (let i = 0; i < timestamps.length; i += 10) {
           const chunk = timestamps.slice(i, i + 10);
           const url =
@@ -724,26 +697,11 @@
               pos.latitude,
               pos.longitude
             );
-
             if (!best || d < best.distance) {
               best = {
                 distance: d,
                 timestamp: pos.timestamp,
               };
-            }
-
-            if (SSTV_EVENTS.length) {
-              const ts = pos.timestamp;
-              const event = SSTV_EVENTS.find(
-                (e) => ts >= e.start && ts <= e.end
-              );
-              if (event && (!bestEventPass || d < bestEventPass.distance)) {
-                bestEventPass = {
-                  distance: d,
-                  timestamp: ts,
-                };
-                bestEvent = event;
-              }
             }
           }
         }
@@ -753,37 +711,19 @@
           distEl.textContent = "–";
           statusEl.textContent =
             "Could not find any close approach in the next 24 hours.";
-        } else {
-          const friendlyTime = toLocalTimeString(best.timestamp);
-          timeEl.textContent = friendlyTime;
-          distEl.textContent = best.distance.toFixed(0) + " km";
-
-          statusEl.textContent =
-            "Closest approach in the next 24 hours (within roughly a few hundred km).";
+          return;
         }
 
-        if (!SSTV_EVENTS.length) {
-          sstvEventEl.textContent = "no SSTV events set";
-          sstvPassEl.textContent = "Edit SSTV_EVENTS in the script.";
-        } else if (!bestEventPass) {
-          sstvEventEl.textContent = "no pass during SSTV windows";
-          sstvPassEl.textContent = "Try other dates or update events.";
-        } else {
-          sstvEventEl.textContent = bestEvent.name + " window";
-          sstvPassEl.textContent =
-            toLocalTimeString(bestEventPass.timestamp) +
-            " at about " +
-            bestEventPass.distance.toFixed(0) +
-            " km";
-          statusEl.textContent +=
-            " SSTV info is based on your custom event list.";
-        }
+        const friendlyTime = toLocalTimeString(best.timestamp);
+        timeEl.textContent = friendlyTime;
+        distEl.textContent = best.distance.toFixed(0) + " km";
+
+        statusEl.textContent =
+          "Closest approach in the next 24 hours (within roughly a few hundred km).";
       } catch (err) {
         console.error(err);
         timeEl.textContent = "error";
         distEl.textContent = "error";
-        sstvEventEl.textContent = "error";
-        sstvPassEl.textContent = "error";
         statusEl.textContent =
           "Could not calculate the next pass. Try again later.";
         statusEl.classList.add("error");
@@ -795,8 +735,11 @@
       loadIssNow();
       loadNextPass();
 
+      // Refresh weather every 10 minutes
       setInterval(loadWeather, 10 * 60 * 1000);
+      // Refresh ISS current position every 15 seconds
       setInterval(loadIssNow, 15 * 1000);
+      // Re-scan passes every 2 hours
       setInterval(loadNextPass, 2 * 60 * 60 * 1000);
     });
   </script>
