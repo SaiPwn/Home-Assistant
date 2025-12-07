@@ -2,8 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Live ISS Map</title>
+  <title>Live ISS Orbit</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet CSS for the map -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
 
   <style>
     :root {
@@ -116,8 +124,8 @@
       box-shadow: 0 18px 32px rgba(0, 0, 0, 0.55);
     }
 
-    iframe {
-      border: 0;
+    /* Leaflet map container */
+    #map {
       width: 100%;
       height: 100%;
     }
@@ -135,6 +143,7 @@
       align-items: center;
       gap: 10px;
       color: var(--muted);
+      pointer-events: none;
     }
 
     .dot {
@@ -176,7 +185,7 @@
   <div class="shell">
     <header>
       <div>
-        <h1>Live ISS Map</h1>
+        <h1>Live ISS Orbit</h1>
         <div style="font-size: 0.8rem; color: var(--muted);">
           Data from <a href="https://wheretheiss.at/w/developer" target="_blank" rel="noopener">wheretheiss.at</a>
         </div>
@@ -207,12 +216,8 @@
     </section>
 
     <section class="map-wrap">
-      <iframe
-        id="map"
-        src="https://maps.google.com/maps?q=0,0&z=3&output=embed"
-        loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-      ></iframe>
+      <!-- New map container instead of iframe -->
+      <div id="map"></div>
 
       <div class="ticker">
         <div class="ticker-left">
@@ -229,7 +234,45 @@
     </section>
   </div>
 
+  <!-- Leaflet JS -->
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
   <script>
+    let map;
+    let issMarker;
+    let issPath;
+    const pathCoords = [];
+
+    function initMap() {
+      map = L.map("map", {
+        worldCopyJump: true
+      }).setView([0, 0], 3);
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 6,
+        minZoom: 2,
+        attribution: "&copy; OpenStreetMap contributors"
+      }).addTo(map);
+
+      // Optional: custom ISS icon. You can change this to your own image if you want.
+      const issIcon = L.icon({
+        iconUrl: "https://raw.githubusercontent.com/joshuaferrara/iss-tracker/master/public/iss.png",
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
+      });
+
+      issMarker = L.marker([0, 0], { icon: issIcon }).addTo(map);
+
+      issPath = L.polyline([], {
+        weight: 2,
+        opacity: 0.9
+      }).addTo(map);
+    }
+
     function updateDisplay(data) {
       const { latitude, longitude, altitude, velocity, timestamp } = data;
 
@@ -241,21 +284,28 @@
 
       const status = document.getElementById("status");
       status.textContent = "Live position updated.";
+      status.classList.remove("error");
 
       const d = new Date(timestamp * 1000);
       document.getElementById("ticker-time").textContent =
         d.toLocaleTimeString();
 
-      const map = document.getElementById("map");
-      const zoom = 4;
-      map.src =
-        "https://maps.google.com/maps?q=" +
-        latitude +
-        "," +
-        longitude +
-        "&z=" +
-        zoom +
-        "&output=embed";
+      if (!map || !issMarker || !issPath) return;
+
+      const latLng = [latitude, longitude];
+
+      // Move marker
+      issMarker.setLatLng(latLng);
+
+      // Extend orbit path
+      pathCoords.push(latLng);
+      if (pathCoords.length > 600) {
+        pathCoords.shift();
+      }
+      issPath.setLatLngs(pathCoords);
+
+      // Keep map roughly centered on the ISS
+      map.panTo(latLng, { animate: true, duration: 0.7 });
     }
 
     async function fetchIss() {
@@ -280,6 +330,7 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      initMap();
       fetchIss();
       setInterval(fetchIss, 20 * 1000);
     });
