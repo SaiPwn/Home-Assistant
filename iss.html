@@ -187,7 +187,8 @@
       <div>
         <h1>Live ISS Orbit</h1>
         <div style="font-size: 0.8rem; color: var(--muted);">
-          Data from <a href="https://wheretheiss.at/w/developer" target="_blank" rel="noopener">wheretheiss.at</a>
+          Data from
+          <a href="https://wheretheiss.at/w/developer" target="_blank" rel="noopener">wheretheiss.at</a>
         </div>
       </div>
       <a href="index.html">← Back to home</a>
@@ -240,7 +241,6 @@
     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
     crossorigin=""
   ></script>
-
   <script>
     let map;
     let issMarker;
@@ -248,29 +248,23 @@
     const pathCoords = [];
 
     function initMap() {
-      map = L.map("map", {
-        worldCopyJump: true
-      }).setView([0, 0], 3);
+      map = L.map("map", { worldCopyJump: true }).setView([0, 0], 3);
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 6,
         minZoom: 2,
-        attribution: "&copy; OpenStreetMap contributors"
+        attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
-      // Optional: custom ISS icon. You can change this to your own image if you want.
-      const issIcon = L.icon({
-        iconUrl: "https://raw.githubusercontent.com/joshuaferrara/iss-tracker/master/public/iss.png",
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
+      // ISS emoji icon
+      const issIcon = L.divIcon({
+        html: "🛰️",
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
       });
 
       issMarker = L.marker([0, 0], { icon: issIcon }).addTo(map);
-
-      issPath = L.polyline([], {
-        weight: 2,
-        opacity: 0.9
-      }).addTo(map);
+      issPath = L.polyline([], { weight: 2, opacity: 0.9 }).addTo(map);
     }
 
     function updateDisplay(data) {
@@ -279,16 +273,14 @@
       document.getElementById("lat").textContent = latitude.toFixed(2) + "°";
       document.getElementById("lon").textContent = longitude.toFixed(2) + "°";
       document.getElementById("alt").textContent = altitude.toFixed(1) + " km";
-      document.getElementById("vel").textContent =
-        (velocity / 1000).toFixed(2) + " km/s";
+      document.getElementById("vel").textContent = (velocity / 1000).toFixed(2) + " km/s";
 
       const status = document.getElementById("status");
       status.textContent = "Live position updated.";
       status.classList.remove("error");
 
       const d = new Date(timestamp * 1000);
-      document.getElementById("ticker-time").textContent =
-        d.toLocaleTimeString();
+      document.getElementById("ticker-time").textContent = d.toLocaleTimeString();
 
       if (!map || !issMarker || !issPath) return;
 
@@ -332,7 +324,7 @@
     document.addEventListener("DOMContentLoaded", () => {
       initMap();
       fetchIss();
-      setInterval(fetchIss, 1 * 1000);
+      setInterval(fetchIss, 0.1 * 1000);
     });
   </script>
 </body>
