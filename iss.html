@@ -1,3 +1,5 @@
+
+You said:
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -174,14 +176,6 @@
       border: 1px solid rgba(148, 163, 184, 0.5);
     }
 
-    /* Emoji ISS marker */
-    .iss-emoji-icon {
-      font-size: 28px;
-      /* center relative to marker anchor */
-      transform: translate(-50%, -50%);
-      text-shadow: 0 0 8px rgba(15, 23, 42, 0.9);
-    }
-
     @media (max-width: 640px) {
       .map-wrap {
         min-height: 320px;
@@ -224,12 +218,13 @@
     </section>
 
     <section class="map-wrap">
+      <!-- New map container instead of iframe -->
       <div id="map"></div>
 
       <div class="ticker">
         <div class="ticker-left">
           <span class="dot"></span>
-          <span id="ticker-text">Updating every ~2 seconds · Blue = past, Green = upcoming</span>
+          <span id="ticker-text">Updating every ~20 seconds…</span>
         </div>
         <div class="ticker-right">
           <span class="mini-pill mono" id="ticker-time">--:--:--</span>
@@ -251,10 +246,8 @@
   <script>
     let map;
     let issMarker;
-    let issPath;        // past path (blue)
-    let issFuturePath;  // future path (green)
+    let issPath;
     const pathCoords = [];
-    let lastFutureUpdate = 0; // unix seconds
 
     function initMap() {
       map = L.map("map", {
@@ -267,29 +260,18 @@
         attribution: "&copy; OpenStreetMap contributors"
       }).addTo(map);
 
-      // Emoji ISS icon
-      const issIcon = L.divIcon({
-        html: "🛰️",
-        className: "iss-emoji-icon",
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+      // Optional: custom ISS icon. You can change this to your own image if you want.
+      const issIcon = L.icon({
+        iconUrl: "https://raw.githubusercontent.com/joshuaferrara/iss-tracker/master/public/iss.png",
+        iconSize: [40, 40],
+        iconAnchor: [20, 20]
       });
 
       issMarker = L.marker([0, 0], { icon: issIcon }).addTo(map);
 
-      // Past path (blue, solid)
       issPath = L.polyline([], {
         weight: 2,
-        opacity: 0.9,
-        color: "#3b82f6"
-      }).addTo(map);
-
-      // Future path (green, dashed)
-      issFuturePath = L.polyline([], {
-        weight: 2,
-        opacity: 0.8,
-        color: "#22c55e",
-        dashArray: "4 4"
+        opacity: 0.9
       }).addTo(map);
     }
 
@@ -317,7 +299,7 @@
       // Move marker
       issMarker.setLatLng(latLng);
 
-      // Extend orbit past path, keep last N points
+      // Extend orbit path
       pathCoords.push(latLng);
       if (pathCoords.length > 600) {
         pathCoords.shift();
@@ -326,43 +308,6 @@
 
       // Keep map roughly centered on the ISS
       map.panTo(latLng, { animate: true, duration: 0.7 });
-
-      // Throttle future orbit updates to about once every 2 minutes
-      if (timestamp - lastFutureUpdate > 120) {
-        lastFutureUpdate = timestamp;
-        fetchPredictedOrbit(timestamp);
-      }
-    }
-
-    async function fetchPredictedOrbit(currentTimestamp) {
-      try {
-        // Build timestamps for next 60 minutes at 1 minute steps
-        const futureTimestamps = [];
-        const stepSeconds = 60;
-        const steps = 60;
-
-        for (let i = 1; i <= steps; i++) {
-          futureTimestamps.push(currentTimestamp + i * stepSeconds);
-        }
-
-        const url =
-          "https://api.wheretheiss.at/v1/satellites/25544/positions?timestamps=" +
-          futureTimestamps.join(",") +
-          "&units=kilometers";
-
-        const res = await fetch(url);
-        if (!res.ok) {
-          console.error("Future orbit HTTP error", res.status);
-          return;
-        }
-
-        const list = await res.json();
-        const futureCoords = list.map((p) => [p.latitude, p.longitude]);
-
-        issFuturePath.setLatLngs(futureCoords);
-      } catch (e) {
-        console.error("Predicted orbit fetch failed", e);
-      }
     }
 
     async function fetchIss() {
@@ -389,8 +334,7 @@
     document.addEventListener("DOMContentLoaded", () => {
       initMap();
       fetchIss();
-      // Update every 2 seconds
-      setInterval(fetchIss, 2 * 1000);
+      setInterval(fetchIss, 20 * 1000);
     });
   </script>
 </body>
